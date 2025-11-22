@@ -1,0 +1,1347 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>HealthMonitor – Μετρήσεις</title>
+
+  <!-- PWA manifest -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#8E0B5B">
+
+  <!-- Favicons -->
+  <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="48x48" href="icons/favicon-48.png">
+
+  <!-- Apple Touch Icons -->
+  <link rel="apple-touch-icon" sizes="120x120" href="icons/apple-120.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-180.png">
+
+  <style>
+    :root{
+      --fuchsia-dark:#8E0B5B;
+      --fuchsia-card:#C14D8C;
+      --fuchsia-accent:#FF4FB6;
+      --text:#ffffff;
+      --text-dim: rgba(255,255,255,0.85);
+      --overlay: rgba(0,0,0,.55);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif;
+      background:linear-gradient(160deg, #7a084f, var(--fuchsia-dark));
+      color:var(--text);
+      display:flex; flex-direction:column; height:100%;
+    }
+    header{
+      background:var(--fuchsia-dark);
+      padding:10px 20px 6px;
+      color:white;
+      box-shadow:0 2px 6px rgba(0,0,0,.3);
+    }
+    header h1{
+      margin:0;
+      font-size:20px;
+    }
+    header small{
+      display:block;
+      font-size:11px;
+      color:var(--text-dim);
+    }
+    main{
+      flex:1; display:flex; align-items:flex-start; justify-content:center;
+      padding:12px 16px 20px; overflow:auto;
+    }
+    .app{
+      width:min(980px,100%);
+      position:relative;
+      padding-bottom:90px;
+    }
+
+    /* User bar */
+    .user-bar{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      align-items:center;
+      margin-bottom:10px;
+      background:rgba(0,0,0,0.2);
+      padding:8px 10px;
+      border-radius:16px;
+      box-shadow:0 3px 10px rgba(0,0,0,.25);
+    }
+    .user-bar label{
+      font-size:13px;
+      color:var(--text-dim);
+    }
+    .user-bar select{
+      appearance:none;
+      border:none;
+      border-radius:12px;
+      padding:6px 10px;
+      background:rgba(0,0,0,.25);
+      color:#fff;
+      font-size:14px;
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.2);
+    }
+    .user-bar button{
+      border:none;
+      border-radius:999px;
+      padding:6px 12px;
+      background:var(--fuchsia-accent);
+      color:#220013;
+      font-size:12px;
+      cursor:pointer;
+      box-shadow:0 3px 10px rgba(0,0,0,.35);
+      white-space:nowrap;
+    }
+
+    .nav{
+      display:flex; justify-content:space-around; margin-bottom:12px; gap:6px;
+    }
+    .nav button{
+      flex:1; margin:0 2px; padding:10px; border:none; border-radius:16px; cursor:pointer;
+      font-weight:600; background:var(--fuchsia-accent); color:#220013;
+      box-shadow:0 4px 12px rgba(0,0,0,.25);
+    }
+
+    .card{
+      background:var(--fuchsia-card);
+      border-radius:24px;
+      padding:24px;
+      box-shadow:0 10px 30px rgba(0,0,0,.25);
+      border:1px solid rgba(255,255,255,.12);
+      min-height:420px;
+    }
+    h2{margin:0 0 8px 0; font-size:20px}
+    p.lead{margin:0 0 16px 0; color:var(--text-dim); font-size:14px}
+
+    .row{display:flex; flex-wrap:wrap; gap:12px}
+    .field{flex:1 1 220px; display:flex; flex-direction:column; gap:4px}
+    label{font-size:13px; color:var(--text-dim)}
+    input[type="text"], input[type="number"], input[type="date"], select{
+      appearance:none; border:none; outline:none; border-radius:14px; padding:10px 12px; font-size:14px;
+      background:rgba(0,0,0,.2); color:var(--text);
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.15);
+    }
+    button.primary{
+      appearance:none; border:none; border-radius:16px; padding:10px 14px; font-weight:600; font-size:14px;
+      background:var(--fuchsia-accent); color:#220013; cursor:pointer;
+      box-shadow:0 6px 18px rgba(255,79,182,.35);
+    }
+    .action-row{
+      flex:1 1 100%;
+      display:flex;
+      justify-content:flex-end;
+      align-items:flex-end;
+      gap:8px;
+    }
+
+    .submenu{display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; margin-bottom:12px;}
+    .submenu button{
+      flex:1 1 120px;
+      background:rgba(0,0,0,.2);
+      border:none;
+      border-radius:12px;
+      padding:8px 10px;
+      color:var(--text);
+      cursor:pointer;
+      font-size:13px;
+    }
+
+    .measure-form{margin-top:4px}
+
+    .list{margin-top:18px; display:grid; gap:10px}
+    .item{
+      background:rgba(0,0,0,.22); border-radius:16px; padding:10px 12px;
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+    }
+
+    #section-measure .print-bar{
+     display: none;
+   }  
+
+    .actions{display:flex; gap:6px}
+    .btn{
+      background:transparent;
+      border:1px solid rgba(255,255,255,.25);
+      color:var(--text);
+      border-radius:12px;
+      padding:6px 10px;
+      cursor:pointer;
+      font-size:12px;
+    }
+    .btn:hover{background:rgba(255,255,255,.12)}
+    .title{font-weight:700; font-size:14px;}
+    .sub{font-size:12px; color:var(--text-dim)}
+
+    .print-bar{
+      margin-top:8px; display:flex; flex-wrap:wrap; gap:8px; align-items:center;
+    }
+
+    .lang-toggle{
+      position:absolute;
+      left:0; right:0; bottom:0;
+      display:flex; justify-content:center; flex-wrap:wrap;
+      padding:10px 8px; gap:10px;
+      background:rgba(0,0,0,0.2);
+      border-radius:20px;
+      margin:0 6px;
+    }
+    .lang-toggle-inner{display:flex;flex-direction:column;gap:6px;align-items:center;}
+    .lang-toggle-inner > div:first-child{display:flex;gap:6px;}
+    .lang-toggle button{
+      border:none; border-radius:999px; padding:6px 12px;
+      background:rgba(255,255,255,.2); color:#fff; cursor:pointer; font-size:11px;
+    }
+
+    .collapse-toggle{
+      background:rgba(255,255,255,.2); border:none; border-radius:12px; padding:6px 10px;
+      color:#fff; cursor:pointer;font-weight:600; font-size:12px;
+    }
+    .collapsible-extra{display:none}
+
+    /* Splash */
+    .splash{
+      position:fixed;
+      inset:0;
+      background:radial-gradient(circle at top, #ff7ac8, #5a0438 60%);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      z-index:10000;
+      transition:opacity .6s ease;
+    }
+    .splash.hidden{opacity:0;pointer-events:none;}
+    .splash-inner{text-align:center;}
+    .splash-logo{
+      width:120px;height:120px;border-radius:40px;background:rgba(0,0,0,.18);
+      display:flex;align-items:center;justify-content:center;margin:0 auto 18px;
+      box-shadow:0 18px 40px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.18);
+      position:relative;
+    }
+    .splash-logo::before,
+    .splash-logo::after{
+      content:'';position:absolute;background:#fff;border-radius:4px;
+    }
+    .splash-logo::before{width:12px;height:60px;}
+    .splash-logo::after{width:60px;height:12px;}
+    .splash-title{
+      font-size:26px;font-weight:800;letter-spacing:1px;
+      text-shadow:0 4px 18px rgba(0,0,0,.6);
+    }
+    .splash-sub{
+      margin-top:6px;font-size:13px;color:var(--text-dim);
+    }
+
+    /* Modals (νέος χρήστης, PIN) */
+    .modal-backdrop{
+      position:fixed;
+      inset:0;
+      background:var(--overlay);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      z-index:11000;
+    }
+    .modal-box{
+      width:min(420px,90%);
+      background:#2b0e20;
+      color:#fff;
+      border-radius:20px;
+      padding:20px 18px 16px;
+      box-shadow:0 10px 30px rgba(0,0,0,.6);
+    }
+    .modal-box h3{margin:0 0 6px 0;font-size:18px;}
+    .modal-box p{margin:0 0 10px 0;font-size:13px;color:var(--text-dim);}
+    .modal-actions{
+      display:flex;
+      justify-content:flex-end;
+      gap:8px;
+      margin-top:12px;
+    }
+
+    @media (max-width:600px){
+      .card{padding:18px;}
+      header h1{font-size:18px;}
+      .user-bar{flex-direction:column;align-items:flex-start;}
+      .action-row{justify-content:flex-start;}
+    }
+  </style>
+</head>
+<body>
+  <!-- SPLASH -->
+  <div id="splash" class="splash">
+    <div class="splash-inner">
+      <div class="splash-logo"></div>
+      <div class="splash-title">HealthMonitor</div>
+      <div class="splash-sub">Καθημερινές μετρήσεις για πολλούς χρήστες</div>
+    </div>
+  </div>
+
+  <header>
+    <h1>HealthMonitor – Μετρήσεις</h1>
+    <small id="header-sub">Πολλοί χρήστες · Καθημερινές μετρήσεις · Εκτύπωση ανά κατηγορία</small>
+  </header>
+
+  <main>
+    <div class="app">
+
+      <!-- User bar -->
+      <div class="user-bar">
+        <label id="label-user">Χρήστης:</label>
+        <select id="user-select" onchange="handleUserSelectChange()"></select>
+        <button onclick="addUser()" id="btn-add-user">+ Νέος χρήστης</button>
+        <button onclick="deleteUser()" id="btn-del-user">Διαγραφή χρήστη</button>
+      </div>
+
+      <!-- Tabs -->
+      <div class="nav">
+        <button id="tab-measure" onclick="showSection('measure')">Μετρήσεις</button>
+        <button id="tab-prints" onclick="showSection('prints')">Εκτυπώσεις</button>
+      </div>
+
+      <!-- Μετρήσεις -->
+      <div id="section-measure" class="card section">
+        <h2 id="measure-title-main">Μετρήσεις</h2>
+        <p class="lead" id="measure-lead">Διάλεξε κατηγορία, βάλε τιμή και αποθήκευσέ την για τον ενεργό χρήστη.</p>
+
+        <div class="submenu">
+          <button id="btn-heart"    onclick="openMeasure('heart')">Παλμοί</button>
+          <button id="btn-sugar"    onclick="openMeasure('sugar')">Ζάκχαρο</button>
+          <button id="btn-pressure" onclick="openMeasure('pressure')">Πίεση</button>
+          <button id="btn-oxygen"   onclick="openMeasure('oxygen')">Οξυγόνο</button>
+          <button id="btn-weight"   onclick="openMeasure('weight')">Βάρος</button>
+          <button id="btn-temp"     onclick="openMeasure('temp')">Θερμοκρασία</button>
+        </div>
+
+        <div class="measure-form" id="measure-form" style="display:none">
+          <h3 id="measure-title"></h3>
+          <div class="row">
+            <div class="field">
+              <label id="label-measure-value">Τιμή</label>
+              <input id="measure-value" />
+              <small id="measure-hint" style="opacity:.85"></small>
+            </div>
+            <div class="field">
+              <label id="label-measure-note">Σημείωση</label>
+              <select id="measure-note"></select>
+              <input id="measure-note-custom" type="text" placeholder="Άλλο…" style="display:none; margin-top:6px" />
+            </div>
+            <div class="action-row">
+              <button class="primary" id="btn-save-measure" onclick="saveMeasure()">Αποθήκευση</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="list" id="measure-list"></div>
+      </div>
+
+      <!-- Εκτυπώσεις -->
+      <div id="section-prints" class="card section" style="display:none">
+        <h2 id="prints-title">Εκτυπώσεις</h2>
+        <p class="lead" id="prints-lead">Διάλεξε κατηγορία μετρήσεων και εκτύπωσε τα στοιχεία του ενεργού χρήστη.</p>
+
+        <div class="print-bar">
+          <label id="label-print2" for="print-select2" style="font-size:13px; color:var(--text-dim); margin-right:6px">
+            Εκτύπωση ανά κατηγορία
+          </label>
+          <select id="print-select2" aria-labelledby="label-print2"></select>
+        </div>
+
+        <div class="print-bar">
+          <label id="label-print-from" style="font-size:13px; color:var(--text-dim);">
+            Από
+          </label>
+          <input type="date" id="print-from">
+          <label id="label-print-to" style="font-size:13px; color:var(--text-dim);">
+            Έως
+          </label>
+          <input type="date" id="print-to">
+          <button class="primary" id="btn-print2" onclick="printSelected()">Εκτύπωση</button>
+        </div>
+      </div>
+
+      <!-- Γλώσσα -->
+      <div class="lang-toggle">
+        <div class="lang-toggle-inner">
+          <div>
+            <button onclick="setLang('el')">Ελληνικά</button>
+            <button onclick="setLang('en')">English</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Modal: Νέος χρήστης -->
+  <div class="modal-backdrop" id="modal-new-user-backdrop">
+    <div class="modal-box">
+      <h3 id="modal-new-user-title">Νέος χρήστης</h3>
+      <p id="modal-new-user-desc">Δώσε όνομα και PIN για τον χρήστη.</p>
+      <div class="field">
+        <label id="label-new-user-name">Όνομα χρήστη</label>
+        <input id="new-user-name" type="text">
+      </div>
+      <div class="field">
+        <label id="label-new-user-pin">PIN</label>
+        <input id="new-user-pin" type="password" inputmode="numeric" pattern="[0-9]*">
+      </div>
+      <div class="field">
+        <label id="label-new-user-pin2">Επιβεβαίωση PIN</label>
+        <input id="new-user-pin2" type="password" inputmode="numeric" pattern="[0-9]*">
+      </div>
+      <div class="modal-actions">
+        <button class="btn" id="btn-new-user-cancel">Άκυρο</button>
+        <button class="primary" id="btn-new-user-save">Αποθήκευση</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: PIN (για επιλογή / διαγραφή χρήστη) -->
+  <div class="modal-backdrop" id="modal-pin-backdrop">
+    <div class="modal-box">
+      <h3 id="modal-pin-title">PIN</h3>
+      <div class="field">
+        <label id="label-modal-pin">Εισαγωγή PIN</label>
+        <input id="modal-pin-input" type="password" inputmode="numeric" pattern="[0-9]*">
+      </div>
+      <div class="modal-actions">
+        <button class="btn" id="btn-pin-cancel">Άκυρο</button>
+        <button class="primary" id="btn-pin-ok">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // PWA service worker
+    if ('serviceWorker' in navigator && String(location.protocol).indexOf('http')===0) {
+      navigator.serviceWorker.register('sw.js').catch(()=>{});
+    }
+
+    // ==== i18n ====
+    const i18n = {
+      el: {
+        headerSub:'Πολλοί χρήστες · Καθημερινές μετρήσεις · Εκτύπωση ανά κατηγορία',
+        users:{
+          label:'Χρήστης:',
+          add:'+ Νέος χρήστης',
+          delete:'Διαγραφή χρήστη',
+          promptName:'Όνομα χρήστη',
+          promptPin:'PIN (τουλάχιστον 4 ψηφία)',
+          promptPinConfirm:'Επιβεβαίωση PIN',
+          pinTooShort:'Το PIN πρέπει να έχει τουλάχιστον 4 ψηφία.',
+          pinMismatch:'Τα PIN δεν ταιριάζουν.',
+          pinWrong:'Λάθος PIN.',
+          userExists:'Υπάρχει ήδη χρήστης με αυτό το όνομα.',
+          needName:'Πρέπει να δώσεις όνομα.',
+          firstUserInfo:'Δεν υπάρχουν χρήστες. Δημιούργησε έναν νέο χρήστη με PIN.',
+          newTitle:'Νέος χρήστης',
+          newDesc:'Δώσε όνομα και PIN για τον χρήστη.',
+          nameLabel:'Όνομα χρήστη',
+          pinLabel:'PIN',
+          pinConfirmLabel:'Επιβεβαίωση PIN',
+          pinDialogLabel:'Εισαγωγή PIN',
+          btnCancel:'Άκυρο',
+          btnSave:'Αποθήκευση',
+          btnOk:'OK'
+        },
+        tabs:{measure:'Μετρήσεις', prints:'Εκτυπώσεις'},
+        measure:{
+          title:'Μετρήσεις',
+          lead:'Διάλεξε κατηγορία, βάλε τιμή και αποθήκευσέ την για τον ενεργό χρήστη.',
+          cats:{
+            heart:'Παλμοί',
+            sugar:'Ζάκχαρο',
+            pressure:'Πίεση',
+            oxygen:'Οξυγόνο',
+            weight:'Βάρος',
+            temp:'Θερμοκρασία'
+          },
+          entryTitle:(kind)=>({
+            heart:'Παλμοί',
+            sugar:'Ζάκχαρο',
+            pressure:'Πίεση',
+            oxygen:'Οξυγόνο',
+            weight:'Βάρος',
+            temp:'Θερμοκρασία'
+          }[kind] || kind),
+          value:'Τιμή',
+          save:'Αποθήκευση',
+          entry:(date,time,kind,val,note)=>`Κατηγορία: ${({
+            heart:'Παλμοί',
+            sugar:'Ζάκχαρο',
+            pressure:'Πίεση',
+            oxygen:'Οξυγόνο',
+            weight:'Βάρος',
+            temp:'Θερμοκρασία'
+          }[kind] || kind)} · Ημ/νία: ${date} · Ώρα: ${time} · Τιμή: ${val}${note?` · Σημ.: ${note}`:''}`,
+          pressureLabel:'Πίεση (Μεγάλη-Μικρή)',
+          pressureHint:'π.χ. 15-7 ή 120-80',
+          pulseHint:'bpm (20–220)',
+          oxygenHint:'% SpO₂ (50–100)',
+          sugarHint:'mg/dL (40–600)',
+          weightHint:'kg (20–300)',
+          tempHint:'°C (34–42)',
+          placeholders:{
+            heart:'π.χ. 72',
+            sugar:'π.χ. 110',
+            pressure:'π.χ. 15-7',
+            oxygen:'π.χ. 97',
+            weight:'π.χ. 82,5',
+            temp:'π.χ. 36,6'
+          },
+          noteLabel:'Σημείωση',
+          noteOptions:{
+            heart:['—','Σε ηρεμία','Μετά από περπάτημα','Μετά από άσκηση','Άλλο…'],
+            sugar:['—','Νηστικός/ή','Πριν το φαγητό','2 ώρες μετά το φαγητό','Άλλο…'],
+            pressure:['—','Καθιστός/ή','Όρθιος/α','Πρωί','Βράδυ','Άλλο…'],
+            oxygen:['—','Σε ηρεμία','Μετά από περπάτημα','Άλλο…'],
+            weight:['—','Πρωί','Βράδυ','Μετά το φαγητό','Άλλο…'],
+            temp:['—','Πρωί','Βράδυ','Μετά από κόπωση','Άλλο…']
+          }
+        },
+        prints:{
+          title:'Εκτυπώσεις',
+          lead:'Διάλεξε κατηγορία μετρήσεων και εκτύπωσε τα στοιχεία του ενεργού χρήστη.',
+          label:'Εκτύπωση ανά κατηγορία',
+          btn:'Εκτύπωση',
+          fromLabel:'Από',
+          toLabel:'Έως'
+        },
+        common:{
+          del:'Διαγραφή',
+          confirmDel:'Θες σίγουρα να διαγραφεί;',
+          more:'Περισσότερα',
+          less:'Λιγότερα',
+          pleaseFill:'Συμπλήρωσε: ',
+          noUser:'Δεν έχει επιλεγεί χρήστης.'
+        },
+        errors:{
+          need_value:'Δώσε τιμή.',
+          bad_pressure:'Δώσε πίεση μορφής Μεγάλη-Μικρή, π.χ. 15-7',
+          bad_pulse:'Οι παλμοί πρέπει να είναι ακέραιος 20–220.',
+          bad_oxygen:'Το οξυγόνο πρέπει να είναι 50–100 (% SpO₂).',
+          bad_sugar:'Το ζάχαρο πρέπει να είναι 40–600.',
+          bad_weight:'Το βάρος πρέπει να είναι 20–300 kg.',
+          bad_temp:'Η θερμοκρασία πρέπει να είναι 34–42 °C.',
+          bad_text:'Επιτρέπονται γράμματα, αριθμοί και απλά σύμβολα.'
+        },
+        table:{
+          date:'Ημερομηνία',
+          time:'Ώρα',
+          value:'Τιμή',
+          note:'Σημείωση'
+        }
+      },
+      en: {
+        headerSub:'Multi-user · Daily measurements · Per-category printing',
+        users:{
+          label:'User:',
+          add:'+ New user',
+          delete:'Delete user',
+          promptName:'User name',
+          promptPin:'PIN (at least 4 digits)',
+          promptPinConfirm:'Confirm PIN',
+          pinTooShort:'PIN must be at least 4 digits.',
+          pinMismatch:'PINs do not match.',
+          pinWrong:'Wrong PIN.',
+          userExists:'A user with this name already exists.',
+          needName:'You must enter a name.',
+          firstUserInfo:'No users yet. Create a new user with a PIN.',
+          newTitle:'New user',
+          newDesc:'Enter a name and PIN for the user.',
+          nameLabel:'User name',
+          pinLabel:'PIN',
+          pinConfirmLabel:'Confirm PIN',
+          pinDialogLabel:'Enter PIN',
+          btnCancel:'Cancel',
+          btnSave:'Save',
+          btnOk:'OK'
+        },
+        tabs:{measure:'Measurements', prints:'Prints'},
+        measure:{
+          title:'Measurements',
+          lead:'Choose a category, enter a value and save it for the active user.',
+          cats:{
+            heart:'Pulse',
+            sugar:'Glycemia',
+            pressure:'Blood pressure',
+            oxygen:'Oxygen',
+            weight:'Weight',
+            temp:'Temperature'
+          },
+          entryTitle:(kind)=>({
+            heart:'Pulse',
+            sugar:'Glycemia',
+            pressure:'Blood pressure',
+            oxygen:'Oxygen',
+            weight:'Weight',
+            temp:'Temperature'
+          }[kind] || kind),
+          value:'Value',
+          save:'Save',
+          entry:(date,time,kind,val,note)=>`Category: ${({
+            heart:'Pulse',
+            sugar:'Glycemia',
+            pressure:'Blood pressure',
+            oxygen:'Oxygen',
+            weight:'Weight',
+            temp:'Temperature'
+          }[kind] || kind)} · Date: ${date} · Time: ${time} · Value: ${val}${note?` · Note: ${note}`:''}`,
+          pressureLabel:'Blood pressure (Sys-Dia)',
+          pressureHint:'e.g. 120-80 or 15-7',
+          pulseHint:'bpm (20–220)',
+          oxygenHint:'% SpO₂ (50–100)',
+          sugarHint:'mg/dL (40–600)',
+          weightHint:'kg (20–300)',
+          tempHint:'°C (34–42)',
+          placeholders:{
+            heart:'e.g. 72',
+            sugar:'e.g. 110',
+            pressure:'e.g. 120-80',
+            oxygen:'e.g. 97',
+            weight:'e.g. 82.5',
+            temp:'e.g. 36.6'
+          },
+          noteLabel:'Note',
+          noteOptions:{
+            heart:['—','At rest','After walking','After exercise','Other…'],
+            sugar:['—','Fasting','Before meal','2h after meal','Other…'],
+            pressure:['—','Sitting','Standing','Morning','Evening','Other…'],
+            oxygen:['—','At rest','After walking','Other…'],
+            weight:['—','Morning','Evening','After meal','Other…'],
+            temp:['—','Morning','Evening','After exertion','Other…']
+          }
+        },
+        prints:{
+          title:'Prints',
+          lead:'Select a measurement category and print data for the active user.',
+          label:'Print by category',
+          btn:'Print',
+          fromLabel:'From',
+          toLabel:'To'
+        },
+        common:{
+          del:'Delete',
+          confirmDel:'Are you sure you want to delete it?',
+          more:'More',
+          less:'Less',
+          pleaseFill:'Please fill: ',
+          noUser:'No user selected.'
+        },
+        errors:{
+          need_value:'Please enter a value.',
+          bad_pressure:'Enter pressure as Sys-Dia, e.g. 120-80',
+          bad_pulse:'Pulse must be an integer between 20 and 220.',
+          bad_oxygen:'Oxygen must be between 50 and 100 (% SpO₂).',
+          bad_sugar:'Glycemia must be between 40 and 600.',
+          bad_weight:'Weight must be between 20 and 300 kg.',
+          bad_temp:'Temperature must be between 34 and 42 °C.',
+          bad_text:'Letters, numbers and basic symbols are allowed.'
+        },
+        table:{
+          date:'Date',
+          time:'Time',
+          value:'Value',
+          note:'Note'
+        }
+      }
+    };
+
+    const LETTERS_REGEX = /^[\p{L}\p{N}\s\.\-,()]+$/u;
+    function isLettersOnly(v){ return LETTERS_REGEX.test(v); }
+
+    function isIntInRange(v,min,max){
+      const n = Number(v);
+      return Number.isInteger(n) && n>=min && n<=max;
+    }
+
+    function isPressure(v){
+      const cleaned = String(v).trim().replace(/[,\s]+/g,'-');
+      return /^(\d{1,3})(?:\.\d{1,2})?-(\d{1,3})(?:\.\d{1,2})?$/.test(cleaned);
+    }
+    function coercePressure(v){
+      const cleaned = String(v).trim().replace(/[,\s]+/g,'-');
+      const m = cleaned.match(/^(\d{1,3}(?:\.\d{1,2})?)-(\d{1,3}(?:\.\d{1,2})?)$/);
+      return m ? (m[1]+'-'+m[2]) : null;
+    }
+
+    function z(n){ return String(n).padStart(2,'0'); }
+
+    // Ημερομηνία σε μορφή dd-mm-yyyy για εμφάνιση + ISO για φιλτράρισμα
+    function nowLocalDatetimeParts(){
+      const d=new Date();
+      const dd = z(d.getDate());
+      const mm = z(d.getMonth()+1);
+      const yyyy = d.getFullYear();
+      const display = `${dd}-${mm}-${yyyy}`;   // dd-mm-yyyy
+      const iso     = `${yyyy}-${mm}-${dd}`;   // YYYY-MM-DD
+      const time = d.toLocaleTimeString(currentLang==='el'?'el-GR':'en-US',{hour:'2-digit',minute:'2-digit'});
+      return {date:display,time,iso};
+    }
+
+    // Από μορφή dd-mm-yyyy ή dd/mm/yyyy σε ISO
+    function isoFromDisplayDate(display){
+      if(!display) return '';
+      const parts = String(display).split(/[.\-\/]/);
+      if(parts.length < 3) return '';
+      const d = parts[0];
+      const m = parts[1];
+      let y = parts[2];
+      y = String(y).padStart(4,'0');
+      const dd = z(parseInt(d,10));
+      const mm = z(parseInt(m,10));
+      return `${y}-${mm}-${dd}`;
+    }
+
+    // Από ISO σε dd-mm-yyyy
+    function displayFromISO(iso){
+      if(!iso) return '';
+      const [y,m,d] = iso.split('-');
+      return `${z(parseInt(d,10))}-${z(parseInt(m,10))}-${y}`;
+    }
+
+    function fillSelect(sel, options){
+      sel.innerHTML='';
+      options.forEach(x=>{
+        const o=document.createElement('option');
+        o.value=x;
+        o.textContent=x;
+        sel.appendChild(o);
+      });
+    }
+
+    function requireAlert(missing){
+      if(!missing.length) return false;
+      alert(t().common.pleaseFill + missing.join(', '));
+      return true;
+    }
+
+    const STORAGE_LANG = 'healthmonitor-lang';
+    const STORAGE_USERS = 'healthmonitor-users';
+    const STORAGE_ACTIVE_USER = 'healthmonitor-active-user';
+    const STORAGE_DATA = 'healthmonitor-data-v1';
+
+    let currentLang = localStorage.getItem(STORAGE_LANG) || (String(navigator.language||'').toLowerCase().startsWith('el')?'el':'en');
+    function t(){ return i18n[currentLang]; }
+
+    let users = JSON.parse(localStorage.getItem(STORAGE_USERS) || '[]');
+    let activeUserId = localStorage.getItem(STORAGE_ACTIVE_USER) || null;
+    let allData = JSON.parse(localStorage.getItem(STORAGE_DATA) || '{}');
+    let measures = {};
+    let firstUserHintShown = false;
+
+    let userDialogMode = null; // 'select' | 'delete'
+    let pendingUserId = null;
+
+    function saveAll(){
+      if(activeUserId){
+        if(!allData[activeUserId]) allData[activeUserId] = {};
+        allData[activeUserId].measures = measures;
+      }
+      localStorage.setItem(STORAGE_USERS, JSON.stringify(users));
+      localStorage.setItem(STORAGE_ACTIVE_USER, activeUserId || '');
+      localStorage.setItem(STORAGE_DATA, JSON.stringify(allData));
+    }
+
+    function loadMeasuresForActiveUser(){
+      if(!activeUserId || !allData[activeUserId] || !allData[activeUserId].measures){
+        measures = {};
+      } else {
+        measures = allData[activeUserId].measures;
+      }
+    }
+
+    function renderUserSelect(){
+      const sel = document.getElementById('user-select');
+      sel.innerHTML = '';
+      users.forEach(u=>{
+        const o=document.createElement('option');
+        o.value=u.id;
+        o.textContent=u.name;
+        sel.appendChild(o);
+      });
+      if(activeUserId){
+        sel.value = activeUserId;
+      }
+    }
+
+    function handleUserSelectChange(){
+      const sel = document.getElementById('user-select');
+      const newId = sel.value;
+      if(!newId || newId===activeUserId) return;
+      showPinModal('select', newId);
+    }
+
+    function addUser(){
+      showNewUserModal();
+    }
+
+    function deleteUser(){
+      if(!activeUserId){
+        alert(t().common.noUser);
+        return;
+      }
+      const user = users.find(u=>u.id===activeUserId);
+      if(!user) return;
+      showPinModal('delete', user.id);
+    }
+
+    function showNewUserModal(){
+      const nameInput = document.getElementById('new-user-name');
+      const pinInput  = document.getElementById('new-user-pin');
+      const pin2Input = document.getElementById('new-user-pin2');
+      nameInput.value=''; pinInput.value=''; pin2Input.value='';
+      document.getElementById('modal-new-user-backdrop').style.display='flex';
+      nameInput.focus();
+    }
+    function hideNewUserModal(){
+      document.getElementById('modal-new-user-backdrop').style.display='none';
+    }
+
+    document.getElementById('btn-new-user-cancel').onclick = hideNewUserModal;
+    document.getElementById('btn-new-user-save').onclick = function(){
+      const nameInput = document.getElementById('new-user-name');
+      const pinInput  = document.getElementById('new-user-pin');
+      const pin2Input = document.getElementById('new-user-pin2');
+      const name = nameInput.value.trim();
+      if(!name){
+        alert(t().users.needName);
+        nameInput.focus();
+        return;
+      }
+      if(users.some(u=>u.name.toLowerCase()===name.toLowerCase())){
+        alert(t().users.userExists);
+        nameInput.focus();
+        return;
+      }
+      const pin  = pinInput.value.trim();
+      const pin2 = pin2Input.value.trim();
+      if(!/^\d{4,}$/.test(pin)){
+        alert(t().users.pinTooShort);
+        pinInput.focus();
+        return;
+      }
+      if(pin!==pin2){
+        alert(t().users.pinMismatch);
+        pin2Input.focus();
+        return;
+      }
+      const id = 'u_'+Date.now();
+      users.push({id,name, pin});
+      allData[id] = {measures:{}};
+      activeUserId=id;
+      measures={};
+      saveAll();
+      renderUserSelect();
+      renderAll();
+      hideNewUserModal();
+    };
+
+    function showPinModal(mode, userId){
+      const backdrop=document.getElementById('modal-pin-backdrop');
+      const titleEl=document.getElementById('modal-pin-title');
+      const input=document.getElementById('modal-pin-input');
+      const user = users.find(u=>u.id===userId);
+      if(!user) return;
+
+      userDialogMode=mode;
+      pendingUserId=userId;
+      input.value='';
+      input.type='password';
+      input.setAttribute('inputmode','numeric');
+      input.setAttribute('pattern','[0-9]*');
+
+      if(currentLang==='el'){
+        titleEl.textContent = (mode==='select'
+          ? `PIN για ${user.name}`
+          : `PIN για διαγραφή χρήστη ${user.name}`);
+      } else {
+        titleEl.textContent = (mode==='select'
+          ? `PIN for ${user.name}`
+          : `PIN to delete user ${user.name}`);
+      }
+
+      backdrop.style.display='flex';
+      input.focus();
+    }
+
+    function hidePinModal(){
+      document.getElementById('modal-pin-backdrop').style.display='none';
+      userDialogMode=null;
+      pendingUserId=null;
+      const sel=document.getElementById('user-select');
+      if(sel && activeUserId){
+        sel.value=activeUserId;
+      }
+    }
+
+    document.getElementById('btn-pin-cancel').onclick = hidePinModal;
+    document.getElementById('btn-pin-ok').onclick = function(){
+      const input=document.getElementById('modal-pin-input');
+      const pin=input.value;
+      const user = users.find(u=>u.id===pendingUserId);
+      if(!user){ hidePinModal(); return; }
+      if(pin!==user.pin){
+        alert(t().users.pinWrong);
+        input.value='';
+        input.focus();
+        return;
+      }
+
+      if(userDialogMode==='select'){
+        activeUserId=user.id;
+        loadMeasuresForActiveUser();
+        saveAll();
+        renderAll();
+      } else if(userDialogMode==='delete'){
+        const idx=users.findIndex(u=>u.id===user.id);
+        if(idx>-1) users.splice(idx,1);
+        delete allData[user.id];
+        if(users.length>0){
+          activeUserId=users[0].id;
+          loadMeasuresForActiveUser();
+        }else{
+          activeUserId=null;
+          measures={};
+        }
+        saveAll();
+        renderUserSelect();
+        renderAll();
+        if(!activeUserId){
+          ensureAtLeastOneUser();
+        }
+      }
+      hidePinModal();
+    };
+
+    function ensureAtLeastOneUser(){
+      if(users.length===0){
+        if(!firstUserHintShown){
+          alert(t().users.firstUserInfo);
+          firstUserHintShown=true;
+        }
+        showNewUserModal();
+      } else {
+        if(!activeUserId || !users.find(u=>u.id===activeUserId)){
+          activeUserId = users[0].id;
+        }
+        loadMeasuresForActiveUser();
+        saveAll();
+      }
+    }
+
+    // Μετρήσεις
+    let currentMeasureKind = null;
+
+    function updateMeasureNoteOptions(kind){
+      const sel = document.getElementById('measure-note');
+      const opts = t().measure.noteOptions[kind] || ['—','Άλλο…'];
+      fillSelect(sel, opts);
+      document.getElementById('measure-note-custom').placeholder = (currentLang==='el'?'Άλλο…':'Other…');
+    }
+
+    function updateMeasureInputsForCurrent(){
+      const input = document.getElementById('measure-value');
+      const hint  = document.getElementById('measure-hint');
+      const label = document.getElementById('label-measure-value');
+
+      if(!currentMeasureKind){
+        input.type='number';
+        input.placeholder='';
+        label.textContent = t().measure.value;
+        hint.textContent='';
+        return;
+      }
+
+      // default
+      input.type='number';
+      input.step='1';
+      input.min='';
+      input.max='';
+      hint.textContent='';
+      label.textContent = t().measure.value;
+
+      const ph = t().measure.placeholders[currentMeasureKind];
+      input.placeholder = ph || '';
+
+      if(currentMeasureKind==='pressure'){
+        input.type='text';
+        label.textContent = t().measure.pressureLabel;
+        hint.textContent  = t().measure.pressureHint;
+
+      } else if(currentMeasureKind==='heart'){
+        input.min='20'; input.max='220';
+        label.textContent = t().measure.value + ' (bpm)';
+        hint.textContent  = t().measure.pulseHint;
+
+      } else if(currentMeasureKind==='oxygen'){
+        input.min='50'; input.max='100';
+        label.textContent = t().measure.value + ' (% SpO₂)';
+        hint.textContent  = t().measure.oxygenHint;
+
+      } else if(currentMeasureKind==='sugar'){
+        input.min='40'; input.max='600';
+        label.textContent = t().measure.value + ' (mg/dL)';
+        hint.textContent  = t().measure.sugarHint;
+
+      } else if(currentMeasureKind==='weight'){
+        input.min='20'; input.max='300';
+        label.textContent = t().measure.cats.weight + ' (kg)';
+        hint.textContent  = t().measure.weightHint;
+
+      } else if(currentMeasureKind==='temp'){
+        input.min='34'; input.max='42';
+        label.textContent = t().measure.cats.temp + ' (°C)';
+        hint.textContent  = t().measure.tempHint;
+      }
+    }
+
+    function openMeasure(kind){
+      if(!activeUserId){
+        alert(t().common.noUser);
+        return;
+      }
+      currentMeasureKind = kind;
+      document.getElementById('measure-form').style.display='block';
+      document.getElementById('measure-title').innerText =
+        (currentLang==='el'?'Καταχώρηση: ':'Entry: ') + t().measure.entryTitle(kind);
+
+      updateMeasureInputsForCurrent();
+      updateMeasureNoteOptions(kind);
+
+      document.getElementById('measure-note-custom').value='';
+      document.getElementById('measure-note-custom').style.display='none';
+      document.getElementById('measure-note').onchange = (e)=>{
+        const v = e.target.value;
+        const isCustom = (v==='Άλλο…' || v==='Other…');
+        document.getElementById('measure-note-custom').style.display = isCustom ? 'block' : 'none';
+      };
+    }
+
+    function saveMeasure(){
+      if(!activeUserId){
+        alert(t().common.noUser);
+        return;
+      }
+      if(!currentMeasureKind){
+        openMeasure('heart');
+      }
+      const input = document.getElementById('measure-value');
+      let raw = String(input.value).trim();
+
+      const noteSel = document.getElementById('measure-note');
+      const needCustom = (noteSel.value==='Άλλο…' || noteSel.value==='Other…');
+      const noteCustom = document.getElementById('measure-note-custom').value.trim();
+
+      const missing = [];
+      if(!raw) missing.push(t().measure.value);
+      if(needCustom && !noteCustom) missing.push(t().measure.noteLabel);
+      if(requireAlert(missing)) return;
+
+      if(needCustom && noteCustom && !isLettersOnly(noteCustom)){
+        alert(t().errors.bad_text); return;
+      }
+
+      let val = raw;
+
+      if(currentMeasureKind==='pressure'){
+        if(!isPressure(raw)){ alert(t().errors.bad_pressure); return; }
+        val = coercePressure(raw);
+      } else if(currentMeasureKind==='heart'){
+        if(!isIntInRange(raw,20,220)){ alert(t().errors.bad_pulse); return; }
+        val = Number(raw) + ' bpm';
+      } else if(currentMeasureKind==='oxygen'){
+        if(!isIntInRange(raw,50,100)){ alert(t().errors.bad_oxygen); return; }
+        val = Number(raw) + ' %SpO₂';
+      } else if(currentMeasureKind==='sugar'){
+        if(!isIntInRange(raw,40,600)){ alert(t().errors.bad_sugar); return; }
+        val = Number(raw) + ' mg/dL';
+      } else if(currentMeasureKind==='weight'){
+        const n = Number(raw.replace(',','.'));
+        if(Number.isNaN(n) || n < 20 || n > 300){
+          alert(t().errors.bad_weight); return;
+        }
+        val = n + ' kg';
+      } else if(currentMeasureKind==='temp'){
+        const n = Number(raw.replace(',','.'));
+        if(Number.isNaN(n) || n < 34 || n > 42){
+          alert(t().errors.bad_temp); return;
+        }
+        val = n + ' °C';
+      }
+
+      const noteVal = needCustom ? noteCustom : (noteSel.value==='—' ? '' : noteSel.value);
+
+      const nowParts = nowLocalDatetimeParts();
+      if(!measures[currentMeasureKind]) measures[currentMeasureKind]=[];
+      measures[currentMeasureKind].push({
+        date: nowParts.date,      // dd-mm-yyyy
+        dateISO: nowParts.iso,    // YYYY-MM-DD
+        time: nowParts.time,
+        kind: currentMeasureKind,
+        value: val,
+        note: noteVal || ''
+      });
+
+      saveAll();
+      renderMeasures();
+
+      input.value='';
+      document.getElementById('measure-note-custom').value='';
+      document.getElementById('measure-note-custom').style.display='none';
+      updateMeasureNoteOptions(currentMeasureKind);
+    }
+
+    function renderMeasures(){
+      const list = document.getElementById('measure-list');
+      list.innerHTML='';
+      if(!activeUserId) return;
+
+      const kindsOrder = ['heart','sugar','pressure','oxygen','weight','temp'];
+
+      kindsOrder.forEach(kind=>{
+        const arr = measures[kind] || [];
+        arr.forEach((m,idx)=>{
+          const div = document.createElement('div');
+          div.className='item';
+          div.innerHTML = `
+            <div>
+              <div class="title">${t().measure.entryTitle(kind)}</div>
+              <div class="sub">${t().measure.entry(m.date,m.time,kind,m.value,m.note||'')}</div>
+            </div>
+          `;
+          const actions = document.createElement('div');
+          actions.className='actions';
+          const delBtn = document.createElement('button');
+          delBtn.className='btn';
+          delBtn.textContent = t().common.del;
+          delBtn.onclick = ()=>{
+            if(confirm(t().common.confirmDel)){
+              measures[kind].splice(idx,1);
+              saveAll(); renderMeasures();
+            }
+          };
+          actions.appendChild(delBtn);
+          div.appendChild(actions);
+          list.appendChild(div);
+        });
+      });
+
+      applyCollapsible(list, 5);
+    }
+
+    function applyCollapsible(listEl, threshold=5){
+      listEl.querySelectorAll('.collapsible-extra, .collapse-toggle').forEach(n=>n.remove());
+      const items = Array.from(listEl.children).filter(n=>n.classList.contains('item'));
+      if(items.length <= threshold) return;
+
+      const extra = document.createElement('div');
+      extra.className='collapsible-extra';
+      for(let i=threshold;i<items.length;i++){
+        extra.appendChild(items[i]);
+      }
+
+      const btn = document.createElement('button');
+      btn.className='collapse-toggle';
+      const updText = (open)=>{
+        const n = extra.children.length;
+        btn.textContent = open ? t().common.less : `${t().common.more} (${n})`;
+      };
+      updText(false);
+      btn.addEventListener('click', ()=>{
+        const open = extra.style.display !== 'none';
+        extra.style.display = open ? 'none' : 'block';
+        updText(!open);
+      });
+
+      listEl.appendChild(btn);
+      listEl.appendChild(extra);
+      extra.style.display='none';
+    }
+
+    // Εκτυπώσεις
+    function rebuildPrintSelect(){
+      const sel = document.getElementById('print-select2');
+      if(!sel) return;
+      const items = [
+        ['heart',   t().measure.cats.heart],
+        ['sugar',   t().measure.cats.sugar],
+        ['pressure',t().measure.cats.pressure],
+        ['oxygen',  t().measure.cats.oxygen],
+        ['weight',  t().measure.cats.weight],
+        ['temp',    t().measure.cats.temp]
+      ];
+      const prev = sel.value || 'heart';
+      sel.innerHTML='';
+      for(const [val,label] of items){
+        const o=document.createElement('option');
+        o.value=val; o.textContent=label;
+        sel.appendChild(o);
+      }
+      sel.value = prev;
+    }
+
+    function printSelected(){
+      if(!activeUserId){
+        alert(t().common.noUser);
+        return;
+      }
+      const sel = document.getElementById('print-select2');
+      const kind = sel.value;
+
+      const fromVal = document.getElementById('print-from').value; // "" ή YYYY-MM-DD
+      const toVal   = document.getElementById('print-to').value;
+
+      const fromISO = fromVal || null;
+      const toISO   = toVal   || null;
+
+      printMeasures(kind, fromISO, toISO);
+    }
+
+    function printMeasures(kind, fromISO, toISO){
+      const all = measures[kind] || [];
+      const data = all.filter(d=>{
+        let iso = d.dateISO;
+        if(!iso){
+          iso = isoFromDisplayDate(d.date);
+        }
+        if(!iso) return true;
+        if(fromISO && iso < fromISO) return false;
+        if(toISO   && iso > toISO)   return false;
+        return true;
+      });
+
+      const title = t().measure.entryTitle(kind);
+      const w = window.open('', '_blank');
+      const thDate = t().table.date;
+      const thTime = t().table.time;
+      const thValue= t().table.value;
+      const thNote = t().table.note;
+
+      const style = `
+        <style>
+          body{font-family:system-ui,-apple-system,Segoe UI,Roboto; padding:20px}
+          h1{margin:0 0 4px 0; font-size:20px}
+          h2{margin:0 0 12px 0; font-size:14px; color:#555}
+          table{border-collapse:collapse; width:100%}
+          th,td{border:1px solid #999; padding:8px; text-align:left}
+          th{background:#eee}
+        </style>`;
+
+      const rows = data.map(d=>`<tr><td>${d.date}</td><td>${d.time}</td><td>${d.value}</td><td>${d.note||''}</td></tr>`).join('') || `<tr><td colspan="4">-</td></tr>`;
+
+      let periodLine = '';
+      if(fromISO || toISO){
+        const fromDisp = displayFromISO(fromISO || '');
+        const toDisp   = displayFromISO(toISO   || '');
+        if(currentLang==='el'){
+          periodLine = `Περίοδος: ${fromDisp || '—'} έως ${toDisp || '—'}`;
+        } else {
+          periodLine = `Period: ${fromDisp || '—'} to ${toDisp || '—'}`;
+        }
+      }
+
+      w.document.write(`
+        <html><head><title>${title}</title>${style}</head>
+        <body>
+          <h1>${title} – ${users.find(u=>u.id===activeUserId)?.name || ''}</h1>
+          ${periodLine ? `<h2>${periodLine}</h2>` : ''}
+          <table>
+            <thead><tr><th>${thDate}</th><th>${thTime}</th><th>${thValue}</th><th>${thNote}</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+          <script>
+            window.addEventListener('load', function () {
+              setTimeout(function () { window.print(); }, 200);
+            });
+          <\/script>
+        </body></html>
+      `);
+      w.document.close();
+    }
+
+    // Tabs & γλώσσα
+    function showSection(id){
+      document.querySelectorAll('.section').forEach(s=>s.style.display='none');
+      document.getElementById('section-'+id).style.display='block';
+    }
+
+    function setLang(lang){
+      if(!i18n[lang]) return;
+      currentLang = lang;
+      localStorage.setItem(STORAGE_LANG, lang);
+
+      document.documentElement.lang = (lang==='el'?'el':'en');
+      document.getElementById('header-sub').textContent = t().headerSub;
+
+      document.getElementById('label-user').textContent     = t().users.label;
+      document.getElementById('btn-add-user').textContent   = t().users.add;
+      document.getElementById('btn-del-user').textContent   = t().users.delete;
+
+      document.getElementById('tab-measure').textContent    = t().tabs.measure;
+      document.getElementById('tab-prints').textContent     = t().tabs.prints;
+
+      document.getElementById('measure-title-main').textContent = t().measure.title;
+      document.getElementById('measure-lead').textContent       = t().measure.lead;
+      document.getElementById('btn-heart').textContent    = t().measure.cats.heart;
+      document.getElementById('btn-sugar').textContent    = t().measure.cats.sugar;
+      document.getElementById('btn-pressure').textContent = t().measure.cats.pressure;
+      document.getElementById('btn-oxygen').textContent   = t().measure.cats.oxygen;
+      document.getElementById('btn-weight').textContent   = t().measure.cats.weight;
+      document.getElementById('btn-temp').textContent     = t().measure.cats.temp;
+      document.getElementById('label-measure-note').textContent = t().measure.noteLabel;
+      document.getElementById('btn-save-measure').textContent   = t().measure.save;
+
+      document.getElementById('prints-title').textContent = t().prints.title;
+      document.getElementById('prints-lead').textContent  = t().prints.lead;
+      document.getElementById('label-print2').textContent = t().prints.label;
+      document.getElementById('btn-print2').textContent   = t().prints.btn;
+      document.getElementById('label-print-from').textContent = t().prints.fromLabel;
+      document.getElementById('label-print-to').textContent   = t().prints.toLabel;
+
+      document.getElementById('modal-new-user-title').textContent = t().users.newTitle;
+      document.getElementById('modal-new-user-desc').textContent  = t().users.newDesc;
+      document.getElementById('label-new-user-name').textContent  = t().users.nameLabel;
+      document.getElementById('label-new-user-pin').textContent   = t().users.pinLabel;
+      document.getElementById('label-new-user-pin2').textContent  = t().users.pinConfirmLabel;
+      document.getElementById('label-modal-pin').textContent      = t().users.pinDialogLabel;
+      document.getElementById('btn-new-user-cancel').textContent  = t().users.btnCancel;
+      document.getElementById('btn-new-user-save').textContent    = t().users.btnSave;
+      document.getElementById('btn-pin-cancel').textContent       = t().users.btnCancel;
+      document.getElementById('btn-pin-ok').textContent           = t().users.btnOk;
+
+      rebuildPrintSelect();
+      updateMeasureInputsForCurrent();
+      renderAll();
+    }
+
+    function renderAll(){
+      renderUserSelect();
+      renderMeasures();
+    }
+
+    // Splash fade
+    window.addEventListener('load', ()=>{
+      const s = document.getElementById('splash');
+      if(!s) return;
+      setTimeout(()=>{
+        s.classList.add('hidden');
+        setTimeout(()=>{ if(s && s.parentNode){ s.parentNode.removeChild(s); } }, 700);
+      }, 1200);
+    });
+
+    // Αρχικοποίηση
+    setLang(currentLang);
+    ensureAtLeastOneUser();
+    renderAll();
+    rebuildPrintSelect();
+    showSection('measure');
+  </script>
+</body>
+</html>
